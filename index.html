@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Корзина</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js" charset="utf-8"></script>
+    <script src="script.js?v=14" charset="utf-8"></script>
+    <style>
+        .goods {
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: flex-start;
+            align-content: flex-start;
+            display: flex;
+        }
+        .good {
+            flex-grow: 0;
+            flex-shrink: 0;
+            margin: 10px;
+            padding: 5px;
+            border: 1px lightgrey solid;
+        }
+        #showMess {
+            margin: 10px auto;
+        }
+        .reviews {
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: flex-start;
+            align-content: flex-start;
+            display: flex;
+        }
+        .review {
+            flex-grow: 0;
+            flex-shrink: 0;
+            margin: 10px;
+            padding: 5px;
+            border: 1px lightgrey solid;
+            width: 200px;
+        }
+        .review input {
+            min-width: 100px;
+            margin: 10px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="basket"></div>
+    <div class="goods"></div>
+    <input type="button" id="showRev" value="Показать отзывы">
+</body>
+
+</html>

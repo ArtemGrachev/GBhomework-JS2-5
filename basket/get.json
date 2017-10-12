@@ -1,0 +1,7 @@
+{
+"result": 1,
+"basket": [
+    {"name": "Сохранённый товар 1", "price": 100, "id_product": 101, "amount": 1},
+    {"name": "Сохранённый товар 2", "price": 200, "id_product": 102, "amount": 2},
+    {"name": "Товар 1", "price": 150, "id_product": 1, "amount": 1}]
+}

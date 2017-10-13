@@ -145,7 +145,6 @@
                 that.basketItems.append($('<p/>').html('<b>' + good.amount + '</b> ' + good.name + ' -- ' + good.price * good.amount + ' руб.<input data-numx="' + good.id_product + '" type="button" class="delete" value="x">'));
             }
         });
-        
         $('#' + this.cAttributes.id).replaceWith(this.render());
         var basketData = $('#basket_data');
         basketData.empty();
@@ -205,8 +204,7 @@
                     $('.goods').on('click', '.put', function() {
                         basket.operate($(this).parent().attr('data-num'), 'add');
                     });
-                    $('.delete').click(function() {
-                        console.log("Удаление");
+                    $('body').on('click', '.delete', function() {
                         basket.operate($(this).attr('data-numx'), 'delete');
                     });
                 }
@@ -217,30 +215,40 @@
             console.log(thrownError);
         }
     });
-/*    
+    
     // Класс отзывов
     function Review(text, user, status) {
-        Container.call(this, 'div', [], 'review');
+        Container.call(this, 'div', [], 'review', {"data-user": user});
         this.status = (status) ? status : 'new';
         this.text = text;
         this.user = user;
     }
     Review.prototype = Object.create(Container.prototype);
     Review.prototype.constructor = Review;
-    Review.prototype.refresh = function () {
-        this.cChildren = [];
-        this.cChildren.append($('<b/>').text('Отзыв пользователя ' + this.user));
-        this.cChildren.append($('<p/>').text(this.text));
-        if (this.status === 'new' && userStatus === 'moder') {
-            this.cChildren.append($('<input/>', {type: 'button', value: 'Одобрить'}));
-        }
-        if ((this.status === 'new' && userStatus === 'moder') || this.user === user) {
-            this.cChildren.append($('<input/>', {type: 'button', value: 'Удалить'}));
-        }
-        if (this.elem.parent()) {
-            this.elem.replaceWith(this.render());
+    Review.prototype.refresh = function (reviews) {
+        if (this.status === 'deleted') {
+            this.elem.remove();
         } else {
-            $('.reviews').appendChild(this.render());
+            this.cChildren = [];
+            this.cChildren.push($('<b/>').text('Отзыв пользователя ' + this.user)[0]);
+            this.cChildren.push($('<p/>').text(this.text)[0]);
+            if (this.status === 'new' && userStatus === 'moder') {
+                this.cChildren.push($('<input/>', {type: 'button', value: 'Одобрить', class: 'revApprove'})[0]);
+            }
+            if ((this.status === 'new' && userStatus === 'moder') || this.user === user) {
+                this.cChildren.push($('<input/>', {type: 'button', value: 'Удалить', class: 'revDelete'})[0]);
+            }
+            if( $('[data-user="' + this.user + '"]').length > 0) {
+                this.elem.replaceWith(this.render());
+            } else {
+                
+                console.log('На рендер');
+                console.log(this);
+                console.log(reviews);
+                console.log(this.render());
+                
+                reviews.append(this.render());
+            }
         }
     }
     
@@ -250,23 +258,118 @@
     }
     ReviewSet.prototype = Object.create(Container.prototype);
     ReviewSet.prototype.constructor = Review;
-    ReviewSet.prototype.refresh = function () {
+    ReviewSet.prototype.write = function () {
         this.cChildren = [];
-        
-        
-        this.cChildren.append($('<b/>').text('Отзыв пользователя ' + this.user));
-        this.cChildren.append($('<p/>').text(this.text));
-        if (this.status === 'new' && userStatus === 'moder') {
-            this.cChildren.append($('<input/>', {type: 'button', value: 'Одобрить'}));
+        var reviews = $('<div/>', {class: 'reviews'})
+        this.cChildren.push(reviews[0]);
+        var iHaveReview = false;
+        this.reviews.forEach(function(review) {
+            if (review.user === user) {
+                iHaveReview = true;
+            }
+            review.refresh(reviews);
+        });
+        if (!iHaveReview) {
+            this.cChildren.push($('<form/>', {class: 'sendMess'}).html('<textarea name="newMess"></textarea><br><button type="submit">Отправить</button>')[0]);
         }
-        if ((this.status === 'new' && userStatus === 'moder') || this.user === user) {
-            this.cChildren.append($('<input/>', {type: 'button', value: 'Удалить'}));
-        }
-        if (this.elem.parent()) {
-            this.elem.replaceWith(this.render());
+        return this.render();
+    };
+    ReviewSet.prototype.refresh = function () {
+        var that = this;
+        if (!this.reviews) {
+            $.ajax({
+                type: 'GET',
+                dataType: 'json',
+                url: "review/list.json?rnd" + Math.random(),
+                success: function(data) {
+                    if (+data.result === 1) {
+                        that.reviews = [];
+                        data.comments.forEach(function(comment) {
+                            var newRev = new Review(comment.text, comment.id_user, comment.status);
+                            that.reviews.push(newRev);
+                        });
+                        if( $('.reviewSet').length > 0) {
+                            that.elem.replaceWith(that.write());
+                        } else {
+                            $('body').append(that.write());
+                        }
+                        $('#showRev').remove();
+                    }
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(xhr.status);
+                    console.log(thrownError);
+                }
+            });
         } else {
-            $('.reviews').appendChild(this.render());
+            this.write();
         }
-    }
-    */
+    };
+    
+    // Обработчики отзывов
+    var reviewSet;
+    $('#showRev').on('click', function(){
+        reviewSet = new ReviewSet();
+        reviewSet.refresh();
+    });
+    $('body').on('submit', '.sendMess', function(e){
+        e.preventDefault();
+        var that = $(this);
+        $.ajax({
+            type: 'GET',
+            dataType: 'json',
+            url: encodeURI("review/add.json?id_user=" + user + "&text=" + that.find("textarea").val() + "&rnd" + Math.random()),
+            success: function(data) {
+                if (+data.result === 1) {
+                    reviewSet.reviews.push(new Review(that.find("textarea").val(), user));
+                    reviewSet.refresh();
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log(xhr.status);
+                console.log(thrownError);
+            }
+        });
+    });
+    $('body').on('click', '.revApprove', function() {
+        var revUser = $(this).parent().attr('data-user');
+        $.ajax({
+            type: 'GET',
+            dataType: 'json',
+            url: encodeURI("review/submit.json?id_user=" + revUser + "&rnd" + Math.random()),
+            success: function(data) {
+                if (+data.result === 1) {
+                    reviewSet.reviews.find(function(review){
+                        return review.user === revUser;
+                    }).status = 'approved';
+                    reviewSet.refresh();
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log(xhr.status);
+                console.log(thrownError);
+            }
+        });
+    });
+    $('body').on('click', '.revDelete', function() {
+        var revUser = $(this).parent().attr('data-user');
+        $.ajax({
+            type: 'GET',
+            dataType: 'json',
+            url: encodeURI("review/delete.json?id_user=" + revUser + "&rnd" + Math.random()),
+            success: function(data) {
+                if (+data.result === 1) {
+                    reviewSet.reviews.find(function(review){
+                        return review.user === revUser;
+                    }).status = 'deleted';
+                    reviewSet.refresh();
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log(xhr.status);
+                console.log(thrownError);
+            }
+        });
+    });
+    
 });})(jQuery)

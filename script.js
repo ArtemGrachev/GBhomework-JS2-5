@@ -5,6 +5,13 @@
     function isObject(variable) {
         return (/^\{.*\}$/.test(JSON.stringify(variable)));
     }
+    Array.prototype.remove = function(value) {
+    var idx = this.indexOf(value);
+    if (idx != -1) {
+        return this.splice(idx, 1);
+    }
+    return false;
+}
     
     // Родительский класс
     function Container(myTag, myChildren, myClass, myAttributes, myOptions) {
@@ -226,30 +233,16 @@
     Review.prototype = Object.create(Container.prototype);
     Review.prototype.constructor = Review;
     Review.prototype.refresh = function (reviews) {
-        if (this.status === 'deleted') {
-            this.elem.remove();
-        } else {
-            this.cChildren = [];
-            this.cChildren.push($('<b/>').text('Отзыв пользователя ' + this.user)[0]);
-            this.cChildren.push($('<p/>').text(this.text)[0]);
-            if (this.status === 'new' && userStatus === 'moder') {
-                this.cChildren.push($('<input/>', {type: 'button', value: 'Одобрить', class: 'revApprove'})[0]);
-            }
-            if ((this.status === 'new' && userStatus === 'moder') || this.user === user) {
-                this.cChildren.push($('<input/>', {type: 'button', value: 'Удалить', class: 'revDelete'})[0]);
-            }
-            if( $('[data-user="' + this.user + '"]').length > 0) {
-                this.elem.replaceWith(this.render());
-            } else {
-                
-                console.log('На рендер');
-                console.log(this);
-                console.log(reviews);
-                console.log(this.render());
-                
-                reviews.append(this.render());
-            }
+        this.cChildren = [];
+        this.cChildren.push($('<b/>').text('Отзыв пользователя ' + this.user)[0]);
+        this.cChildren.push($('<p/>').text(this.text)[0]);
+        if (this.status === 'new' && userStatus === 'moder') {
+            this.cChildren.push($('<input/>', {type: 'button', value: 'Одобрить', class: 'revApprove'})[0]);
         }
+        if ((this.status === 'new' && userStatus === 'moder') || this.user === user) {
+            this.cChildren.push($('<input/>', {type: 'button', value: 'Удалить', class: 'revDelete'})[0]);
+        }
+        reviews.append(this.render());
     }
     
     // Класс модуля отзывов
@@ -261,7 +254,6 @@
     ReviewSet.prototype.write = function () {
         this.cChildren = [];
         var reviews = $('<div/>', {class: 'reviews'})
-        this.cChildren.push(reviews[0]);
         var iHaveReview = false;
         this.reviews.forEach(function(review) {
             if (review.user === user) {
@@ -269,6 +261,7 @@
             }
             review.refresh(reviews);
         });
+        this.cChildren.push(reviews[0]);
         if (!iHaveReview) {
             this.cChildren.push($('<form/>', {class: 'sendMess'}).html('<textarea name="newMess"></textarea><br><button type="submit">Отправить</button>')[0]);
         }
@@ -302,7 +295,11 @@
                 }
             });
         } else {
-            this.write();
+            if( $('.reviewSet').length > 0) {
+                this.elem.replaceWith(this.write());
+            } else {
+                $('body').append(this.write());
+            }
         }
     };
     
@@ -359,9 +356,9 @@
             url: encodeURI("review/delete.json?id_user=" + revUser + "&rnd" + Math.random()),
             success: function(data) {
                 if (+data.result === 1) {
-                    reviewSet.reviews.find(function(review){
+                    reviewSet.reviews.remove(reviewSet.reviews.find(function(review){
                         return review.user === revUser;
-                    }).status = 'deleted';
+                    }));
                     reviewSet.refresh();
                 }
             },
